@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tırsan Treyler Takip Sistemi</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 100vh; width: 100%; }
+        body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; }
+        .info-label { background: white; padding: 5px; border-radius: 5px; border: 1px solid #ccc; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+
+    <script>
+        // --- AYAR: Google Sheets Yayın Linkinizi buraya yapıştırın ---
+        const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSK8xi20nITaCs3QGuv_2t_fFDahaSusi1EZk4eioJpfspoo57yCDhD2XgJVEvJir56J4awAlJXae_I/pubhtml';
+
+        const map = L.map('map').setView([48.0, 10.0], 5); // Avrupa merkezli başlangıç
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        // Standart Tenteli Treyler İkonu
+        const trailerIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png', // Ücretsiz treyler ikonu
+            iconSize: [35, 35],
+            iconAnchor: [17, 17]
+        });
+
+        function loadData() {
+            Papa.parse(sheetUrl, {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    // Haritayı her güncellemede temizle (eskileri sil)
+                    map.eachLayer((layer) => {
+                        if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+                            map.removeLayer(layer);
+                        }
+                    });
+
+                    results.data.forEach(row => {
+                        const lat = parseFloat(row["ENLEM"]);
+                        const lng = parseFloat(row["BOYLAM"]);
+                        const targetLat = parseFloat(row["Q"]); // Apps Script ile atadığımız sütun
+                        const targetLng = parseFloat(row["R"]);
+                        const durum = row["DURUM"] ? row["DURUM"].toUpperCase() : "";
+
+                        // Sadece "VARDI" olmayanları göster
+                        if (!isNaN(lat) && !isNaN(lng) && durum !== "VARDI") {
+                            
+                            // 1. Araç İkonu
+                            const marker = L.marker([lat, lng], {icon: trailerIcon}).addTo(map);
+                            marker.bindPopup(`
+                                <b>Şasi:</b> ${row["ŞASİ NUMARASI"]}<br>
+                                <b>Yürüyen:</b> ${row["YÜRÜYEN"]}<br>
+                                <b>Hedef:</b> ${row["VARIŞ LOKASYONU"]}<br>
+                                <b>Durum:</b> ${durum}
+                            `);
+
+                            // 2. Hedefe Ok (Çizgi)
+                            if (!isNaN(targetLat) && !isNaN(targetLng)) {
+                                const line = L.polyline([[lat, lng], [targetLat, targetLng]], {
+                                    color: 'blue',
+                                    weight: 2,
+                                    opacity: 0.5,
+                                    dashArray: '5, 10'
+                                }).addTo(map);
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        loadData();
+        setInterval(loadData, 60000); // Her 60 saniyede bir veriyi yenile
+    </script>
+</body>
+</html>
