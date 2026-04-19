@@ -8,7 +8,9 @@
     <style>
         #map { height: 100vh; width: 100%; }
         body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; }
-        .leaflet-popup-content { font-size: 14px; line-height: 1.5; }
+        /* Pop-up pencerelerini biraz daha profesyonel gösterelim */
+        .leaflet-popup-content-wrapper { border-radius: 8px; box-shadow: 0 3px 14px rgba(0,0,0,0.4); }
+        .leaflet-popup-content { font-size: 14px; line-height: 1.6; padding: 10px; }
     </style>
 </head>
 <body>
@@ -18,20 +20,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
 
     <script>
-        // Google Sheets CSV Linki (Senin linkin)
+        // --- AYAR: Google Sheets Yayın Linkin (csv formatında) ---
         const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSK8xi20nITaCs3QGuv_2t_fFDahaSusi1EZk4eioJpfspoo57yCDhD2XgJVEvJir56J4awAlJXae_I/pub?output=csv';
 
-        const map = L.map('map').setView([48.0, 10.0], 5); 
+        const map = L.map('map').setView([48.0, 10.0], 5); // Avrupa merkezli başlangıç
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(map);
 
-        // Şık bir Treyler İkonu
+        // --- YENİ: Şık Yan Profil Treyler İkonu ---
         const trailerIcon = L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png', 
-            iconSize: [40, 40],
-            iconAnchor: [20, 20],
-            popupAnchor: [0, -20]
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png', // Yan profil treyler
+            iconSize: [45, 45], // Boyut
+            iconAnchor: [22, 22], // Merkezleme
+            popupAnchor: [0, -20] // Pop-up konumu
         });
 
         function loadData() {
@@ -39,51 +41,51 @@
                 download: true,
                 header: true,
                 complete: function(results) {
-                    // Temizlik
+                    // Haritayı temizle
                     map.eachLayer((layer) => {
-                        if (layer instanceof L.Marker || layer instanceof L.Polyline) {
+                        if (layer instanceof L.Marker || layer instanceof L.Polyline || layer instanceof L.CircleMarker) {
                             map.removeLayer(layer);
                         }
                     });
 
                     results.data.forEach(row => {
-                        // Sütun isimlerini senin Sheets'e göre eşitledik
+                        // Sütun isimlerini Sheets'tekiyle (resimdekiyle) birebir eşitledik
                         const lat = parseFloat(row["ENLEM"]);
                         const lng = parseFloat(row["BOYLAM"]);
-                        const targetLat = parseFloat(row["VARIS ENLEM"]); 
-                        const targetLng = parseFloat(row["VARIS BOYLAM"]);
+                        const targetLat = parseFloat(row["VARİŞ ENLEM"]); 
+                        const targetLng = parseFloat(row["VARİŞ BOYLAM"]);
                         const durum = row["DURUM"] ? row["DURUM"].trim().toUpperCase() : "";
 
+                        // Sadece "VARDI" olmayanları göster
                         if (!isNaN(lat) && !isNaN(lng) && durum !== "VARDI") {
                             
-                            // 1. Araç Markerı
+                            // 1. Araç İkonu (Treyler Resmi ile)
                             const marker = L.marker([lat, lng], {icon: trailerIcon}).addTo(map);
                             marker.bindPopup(`
-                                <div style="color:#0054a6; font-weight:bold; border-bottom:1px solid #ccc; margin-bottom:5px;">TIRSAN LOJİSTİK TAKİP</div>
+                                <div style="color:#0054a6; font-weight:bold; border-bottom:1px solid #eee; padding-bottom:5px; margin-bottom:5px;">TIRSAN ARAÇ TAKİP</div>
                                 <b>Şasi:</b> ${row["ŞASİ NUMARASI"] || '-'}<br>
                                 <b>Yürüyen:</b> ${row["YÜRÜYEN"] || '-'}<br>
                                 <b>Mevcut:</b> ${row["GÜNCEL KONUM"] || '-'}<br>
                                 <b>Hedef:</b> ${row["VARIŞ LOKASYONU"] || '-'}<br>
-                                <b>Durum:</b> <span style="color:red">${durum}</span>
+                                <b>Durum:</b> <span style="color: #d9534f; font-weight:bold;">${durum}</span>
                             `);
 
-                            // 2. Hedefe Giden Mavi Ok/Çizgi
+                            // 2. Hedefe Mavi Kesikli Çizgi
                             if (!isNaN(targetLat) && !isNaN(targetLng)) {
-                                // Rota Çizgisi
                                 L.polyline([[lat, lng], [targetLat, targetLng]], {
-                                    color: '#0054a6',
+                                    color: '#0054a6', // Tırsan Mavisi
                                     weight: 3,
                                     opacity: 0.6,
-                                    dashArray: '10, 10'
+                                    dashArray: '10, 10' // Kesikli çizgi
                                 }).addTo(map);
 
-                                // Varış Noktasına Küçük Bir İşaret
+                                // Varış Noktasına Kırmızı Hedef Noktası
                                 L.circleMarker([targetLat, targetLng], {
-                                    radius: 5,
+                                    radius: 6,
                                     color: 'red',
                                     fillColor: 'red',
                                     fillOpacity: 1
-                                }).addTo(map).bindPopup("Varış Noktası: " + row["VARIŞ LOKASYONU"]);
+                                }).addTo(map).bindPopup("Varış Noktası: " + (row["VARIŞ LOKASYONU"] || 'Bilinmiyor'));
                             }
                         }
                     });
@@ -92,7 +94,7 @@
         }
 
         loadData();
-        setInterval(loadData, 30000); // 30 saniyede bir güncelle
+        setInterval(loadData, 60000); // 60 saniyede bir veriyi yenile
     </script>
 </body>
 </html>
