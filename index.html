@@ -22,19 +22,16 @@
         const map = L.map('map').setView([48.0, 10.0], 5); 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        // YENİ TREYLER SİMGESİ (Mavi ve Net)
+        // KENDİ YÜKLEDİĞİNİZ İKON
         const trailerIcon = L.icon({
-            iconUrl: 'https://img.icons8.com/ios-filled/100/0054a6/semi-truck.png', 
-            iconSize: [40, 40],
-            iconAnchor: [20, 20],
+            iconUrl: 'treyler.png', 
+            iconSize: [45, 45],
+            iconAnchor: [22, 22],
             popupAnchor: [0, -15]
         });
 
         function loadData() {
-            // Tarayıcı önbelleğini aşmak için linkin sonuna rastgele sayı ekliyoruz
-            const finalUrl = sheetUrl + '&cache=' + Math.random();
-
-            Papa.parse(finalUrl, {
+            Papa.parse(sheetUrl + '&cache=' + Math.random(), {
                 download: true,
                 header: true,
                 complete: function(results) {
@@ -48,25 +45,24 @@
                         const lat = parseFloat(row["ENLEM"]);
                         const lng = parseFloat(row["BOYLAM"]);
                         
-                        // Sütun isimlerini hem İ hem I harfiyle kontrol eden garanti yöntem:
+                        // Sütun ismi kontrolü: Hem İ hem I harfini kontrol eder
                         const targetLat = parseFloat(row["VARİŞ ENLEM"] || row["VARIS ENLEM"]);
                         const targetLng = parseFloat(row["VARİŞ BOYLAM"] || row["VARIS BOYLAM"]);
                         
                         const durum = row["DURUM"] ? row["DURUM"].trim().toUpperCase() : "";
 
                         if (!isNaN(lat) && !isNaN(lng) && durum !== "VARDI") {
-                            
-                            // 1. Treyler Simgesini Ekle
+                            // Treyler simgesi
                             L.marker([lat, lng], {icon: trailerIcon}).addTo(map)
-                             .bindPopup(`<b>Şasi:</b> ${row["ŞASİ NUMARASI"]}<br><b>Hedef:</b> ${row["VARIŞ LOKASYONU"]}<br><b>Durum:</b> ${durum}`);
+                             .bindPopup(`<b>Şasi:</b> ${row["ŞASİ NUMARASI"]}<br><b>Durum:</b> ${durum}`);
 
-                            // 2. Çizgileri Geri Getir
+                            // Çizgiler (Rotalar)
                             if (!isNaN(targetLat) && !isNaN(targetLng)) {
                                 L.polyline([[lat, lng], [targetLat, targetLng]], {
                                     color: '#0054a6',
                                     weight: 3,
                                     opacity: 0.6,
-                                    dashArray: '8, 12'
+                                    dashArray: '10, 15'
                                 }).addTo(map);
 
                                 L.circleMarker([targetLat, targetLng], {radius: 5, color: 'red'}).addTo(map);
