@@ -28,7 +28,7 @@
 
         // Standart Tenteli Treyler İkonu
         const trailerIcon = L.icon({
-            iconUrl: 'https://cdn-icons-png.flaticon.com/512/3063/3063822.png', // Ücretsiz treyler ikonu
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/71/71530.png', // Ücretsiz treyler ikonu
             iconSize: [35, 35],
             iconAnchor: [17, 17]
         });
@@ -48,8 +48,8 @@
                     results.data.forEach(row => {
                         const lat = parseFloat(row["ENLEM"]);
                         const lng = parseFloat(row["BOYLAM"]);
-                        const targetLat = parseFloat(row["Q"]); // Apps Script ile atadığımız sütun
-                        const targetLng = parseFloat(row["R"]);
+                        const targetLat = parseFloat(row["VARIŞ ENLEM"]); // Apps Script ile atadığımız sütun
+                        const targetLng = parseFloat(row["VARIŞ BOYLAM"]);
                         const durum = row["DURUM"] ? row["DURUM"].toUpperCase() : "";
 
                         // Sadece "VARDI" olmayanları göster
